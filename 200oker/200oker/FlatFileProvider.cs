@@ -1,17 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Policy;
 
 namespace _200oker
 {
     public class FlatFileProvider
     {
-        public List<Check> GetChecks(string filename)
+        public List<UrlToCheck> GetChecks(string filename)
         {
-            var checks = new List<Check>();
+            var checks = new List<UrlToCheck>();
 
             if (!File.Exists(filename))
-                throw new ArgumentException("Input file {0} not found", filename);
+                throw new ArgumentException(String.Format("Input file {0} not found", filename));
 
             using (var fr = File.OpenRead(filename))
             using (var sr = new StreamReader(fr))
@@ -31,7 +32,7 @@ namespace _200oker
             return checks;
         }
 
-        private Check ParseCheckLine(string line)
+        private UrlToCheck ParseCheckLine(string line)
         {
             var lineParts = line.Split(new[] { "|" }, StringSplitOptions.RemoveEmptyEntries);
             var url = lineParts[0].Trim();
@@ -39,7 +40,7 @@ namespace _200oker
             if (lineParts.Length > 1)
                 childSelector = lineParts[1].Trim();
 
-            return new Check()
+            return new UrlToCheck()
             {
                 Url = url,
                 ChildSelector = childSelector,

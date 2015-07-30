@@ -1,35 +1,62 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
+using System.Reflection;
 using System.Threading.Tasks;
 
 namespace _200oker
 {
     internal class Program
     {
-        static readonly FlatFileProvider _provider = new FlatFileProvider();
-        static readonly Checker _checker = new Checker();
+        private static readonly FlatFileProvider _provider = new FlatFileProvider();
+        private static readonly Checker _checker = new Checker();
 
-        private static void Main(string[] args)
+        private static int Main(string[] args)
         {
-            var checks = _provider.GetChecks("checks.txt");
+            PrintApplicationInfo();
+
+            var inputfile = "checks.txt";
+            if (args.Length > 0)
+                inputfile = args[0];
+
+            var checks = _provider.GetChecks(inputfile);
 
             Console.Write("Checking");
 
             var sw = Stopwatch.StartNew();
-            Parallel.ForEach(checks, new ParallelOptions() { MaxDegreeOfParallelism = 50 }, _checker.PerformCheck);
+            Parallel.ForEach(checks, new ParallelOptions() { MaxDegreeOfParallelism = 2 },
+                c => _checker.PerformCheck(c.Url, c.ChildSelector));
             sw.Stop();
 
             Console.WriteLine();
             Console.WriteLine("Performed {0} checks in {1:0.00} seconds.",
-                _checker.Visited.Count,
+                _checker.Results.Count,
                 sw.Elapsed.TotalSeconds);
+
+            var counts = from r in _checker.Results
+                         group r by r.Value
+                into status
+                         select new { status = status.Key, count = status.Count() };
+
+            foreach (var count in counts)
+            {
+                Console.WriteLine("{0} urls had a status of {1}", count.count, count.status);
+            }
 
             if (Debugger.IsAttached)
             {
                 Console.WriteLine("Press any key to exit");
                 Console.ReadKey();
             }
+
+            return _checker.Results.Values.All(x => x == HttpStatusCode.OK) ? 0 : -1;
+        }
+
+        private static void PrintApplicationInfo()
+        {
+            var version = Assembly.GetCallingAssembly().GetName().Version.ToString();
+            Console.WriteLine("200OKer v{0} - http://github.com/carsales/200oker", version);
         }
     }
 }

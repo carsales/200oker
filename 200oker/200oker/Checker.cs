@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using CsQuery;
@@ -10,69 +9,79 @@ namespace _200oker
 {
     public class Checker
     {
-        public ConcurrentBag<string> Visited { get; set; }
+        public ConcurrentDictionary<string, HttpStatusCode?> Results { get; set; }
 
         public Checker()
         {
-            Visited = new ConcurrentBag<string>();
+            Results = new ConcurrentDictionary<string, HttpStatusCode?>();
         }
 
-        public void PerformCheck(Check check)
+        public void PerformCheck(string url, string childSelector)
         {
-            if (Visited.Contains(check.Url))
+            // check that it hasn't been done already
+            if (Results.ContainsKey(url))
                 return;
-            Visited.Add(check.Url);
 
-            //Console.WriteLine("Checking {0}...", check.Url);
+            // put in placeholder value
+            Results.TryAdd(url, null);
+
+            //Console.WriteLine(url);
             Console.Write(".");
-            var req = (HttpWebRequest)WebRequest.Create(check.Url);
-            req.Timeout = 5 * 60 * 1000; // 5 minutes
+            var req = (HttpWebRequest) WebRequest.Create(url);
+            req.UserAgent = "200OKer (https://github.com/carsales/200oker)";
+            req.Timeout = 60000; // 5 * 60 * 1000; // 5 minutes
 
-            using (var resp = (HttpWebResponse)req.GetResponse())
+            using (var resp = (HttpWebResponse) req.GetResponse())
             {
-                check.Result = resp.StatusCode;
+                Results.TryUpdate(url, resp.StatusCode, null);
 
-                using (var rs = resp.GetResponseStream())
-                using (var sr = new StreamReader(rs))
+                if (resp.StatusCode == HttpStatusCode.OK && !String.IsNullOrWhiteSpace(childSelector))
                 {
-                    var html = sr.ReadToEnd();
-                    CheckChildren(check, html);
+                    using (var rs = resp.GetResponseStream())
+                    {
+                        if (rs != null)
+                        {
+                            using (var sr = new StreamReader(rs))
+                            {
+                                var html = sr.ReadToEnd();
+                                CheckChildren(url, childSelector, html);
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        public void CheckChildren(Check check, string html)
+        public void CheckChildren(string parentUrl, string childSelector, string html)
         {
-            if (String.IsNullOrWhiteSpace(check.ChildSelector))
-                return;
-
             var dom = new CQ(html);
+            var links = dom.Select(childSelector);
 
-            var links = dom.Select(check.ChildSelector);
+            Parallel.ForEach(links, new ParallelOptions() {MaxDegreeOfParallelism = 3}, o =>
+            {
+                var url = o.Attributes["href"];
+                if (String.IsNullOrWhiteSpace(url))
+                    return;
 
-            Parallel.ForEach(links, new ParallelOptions() { MaxDegreeOfParallelism = 50 }, o =>
-              {
-                  var url = o.Attributes["href"];
-                  if (String.IsNullOrWhiteSpace(url))
-                      return;
+                // check for relative url
+                if (!url.StartsWith("http://") &&
+                    !url.StartsWith("https://") &&
+                    !url.StartsWith("//"))
+                {
+                    if (url.StartsWith("/"))
+                        url = new Uri(parentUrl).GetLeftPart(UriPartial.Authority) + url;
+                    else
+                        url = parentUrl + url;
+                }
 
-                  // check for relative url
-                  if (!url.StartsWith("http:") &&
-                        !url.StartsWith("https:"))
-                  {
-                      if (url.StartsWith("/"))
-                          url = new Uri(check.Url).GetLeftPart(UriPartial.Authority) + url;
-                      else
-                          url = check.Url + url;
-                  }
+                // check for protocol relative url
+                if (url.StartsWith("//"))
+                {
+                    url = new Uri(parentUrl).GetLeftPart(UriPartial.Scheme) + url.Substring(2);
+                }
 
-                  var childCheck = new Check()
-                  {
-                      Url = url,
-                  };
-                  check.Children.Add(childCheck);
-                  PerformCheck(childCheck);
-              });
+                PerformCheck(url, null);
+            });
         }
     }
 }

@@ -1,2 +1,2 @@
 # 200OKer
-A tool to help with application warmup and basic OKness checking
+A command-line tool to help with web application warmup and basic OKness checking
