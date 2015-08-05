@@ -1,9 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 using CsQuery;
+
+using HtmlParserSharp.Core;
+
 
 namespace _200oker
 {
@@ -25,31 +29,65 @@ namespace _200oker
             // put in placeholder value
             Results.TryAdd(url, null);
 
-            //Console.WriteLine(url);
-            Console.Write(".");
+            
+           
+
             var req = (HttpWebRequest) WebRequest.Create(url);
             req.UserAgent = "200OKer (https://github.com/carsales/200oker)";
             req.Timeout = 60000; // 5 * 60 * 1000; // 5 minutes
 
-            using (var resp = (HttpWebResponse) req.GetResponse())
+            try
             {
-                Results.TryUpdate(url, resp.StatusCode, null);
-
-                if (resp.StatusCode == HttpStatusCode.OK && !String.IsNullOrWhiteSpace(childSelector))
+                using (var resp = (HttpWebResponse)req.GetResponse())
                 {
-                    using (var rs = resp.GetResponseStream())
+                    Results.TryUpdate(url, resp.StatusCode, null);
+                    //out put
+                    Console.WriteLine("URL: " + url);
+                    Console.WriteLine("Status Code: " + (int)resp.StatusCode);
+                    Console.WriteLine("Status Description: " + resp.StatusDescription + "\n");
+
+                    if (resp.StatusCode == HttpStatusCode.OK && !String.IsNullOrWhiteSpace(childSelector))
                     {
-                        if (rs != null)
+
+                        using (var rs = resp.GetResponseStream())
                         {
-                            using (var sr = new StreamReader(rs))
+                            if (rs != null)
                             {
-                                var html = sr.ReadToEnd();
-                                CheckChildren(url, childSelector, html);
+                                using (var sr = new StreamReader(rs))
+                                {
+                                    var html = sr.ReadToEnd();
+                                    CheckChildren(url, childSelector, html);
+                                }
                             }
                         }
+                        
                     }
+                   
                 }
             }
+            catch (WebException ex)
+            {
+                Console.WriteLine("URL: " + url);
+                Console.WriteLine(ex.Status);
+                Console.WriteLine("Status Code: " + HttpStatusCode.NotFound);
+                Results.TryUpdate(url, HttpStatusCode.NotFound, null);
+
+//                if (ex.Response != null)
+//                {
+//                    // can use ex.Response.Status, .StatusDescription
+//                    if (ex.Response.ContentLength != 0)
+//                    {
+//                        using (var stream = ex.Response.GetResponseStream())
+//                        {
+//                            using (var reader = new StreamReader(stream))
+//                            {
+//                                Console.WriteLine(reader.ReadToEnd());
+//                            }
+//                        }
+//                    }
+//                }
+            }
+            
         }
 
         public void CheckChildren(string parentUrl, string childSelector, string html)
@@ -62,7 +100,11 @@ namespace _200oker
                 var url = o.Attributes["href"];
                 if (String.IsNullOrWhiteSpace(url))
                     return;
-
+                if (url.StartsWith("http://crtl"))
+                {
+                    //ignore media motive ads
+                    return;
+                }
                 // check for relative url
                 if (!url.StartsWith("http://") &&
                     !url.StartsWith("https://") &&
@@ -70,6 +112,7 @@ namespace _200oker
                 {
                     if (url.StartsWith("/"))
                         url = new Uri(parentUrl).GetLeftPart(UriPartial.Authority) + url;
+                    
                     else
                         url = parentUrl + url;
                 }

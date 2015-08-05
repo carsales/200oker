@@ -1,2 +1,3 @@
 ﻿http://www.carsales.com.au/|.site-nav a
 http://www.carsales.com.au/cars/results?area=Stock&vertical=car&sortBy=TopDeal&q=%28Service%3D[Carsales]%29&WT.z_srchsrcx=makemodel|.result-set-container a
+http://www.carsales.com.au/bncis/details/Daewoo-BH117-2014/OAG-AD-1710062/?Cr=1|.layout-body a

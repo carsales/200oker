@@ -22,7 +22,7 @@ namespace _200oker
 
             var checks = _provider.GetChecks(inputfile);
 
-            Console.Write("Checking");
+            Console.WriteLine("Initial Checking");
 
             var sw = Stopwatch.StartNew();
             Parallel.ForEach(checks, new ParallelOptions() { MaxDegreeOfParallelism = 2 },
