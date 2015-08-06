@@ -1,13 +1,11 @@
 ﻿using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using CsQuery;
-
-using HtmlParserSharp.Core;
-
 
 namespace _200oker
 {
@@ -29,26 +27,18 @@ namespace _200oker
             // put in placeholder value
             Results.TryAdd(url, null);
 
-            
-           
-
-            var req = (HttpWebRequest) WebRequest.Create(url);
+            var req = (HttpWebRequest)WebRequest.Create(url);
             req.UserAgent = "200OKer (https://github.com/carsales/200oker)";
-            req.Timeout = 60000; // 5 * 60 * 1000; // 5 minutes
+            req.Timeout = Config.TimeoutInSeconds * 1000;
 
             try
             {
                 using (var resp = (HttpWebResponse)req.GetResponse())
                 {
-                    Results.TryUpdate(url, resp.StatusCode, null);
-                    //out put
-                    Console.WriteLine("URL: " + url);
-                    Console.WriteLine("Status Code: " + (int)resp.StatusCode);
-                    Console.WriteLine("Status Description: " + resp.StatusDescription + "\n");
+                    SetResultFromResponse(url, resp);
 
                     if (resp.StatusCode == HttpStatusCode.OK && !String.IsNullOrWhiteSpace(childSelector))
                     {
-
                         using (var rs = resp.GetResponseStream())
                         {
                             if (rs != null)
@@ -60,34 +50,31 @@ namespace _200oker
                                 }
                             }
                         }
-                        
+
                     }
-                   
                 }
             }
             catch (WebException ex)
             {
-                Console.WriteLine("URL: " + url);
-                Console.WriteLine(ex.Status);
-                Console.WriteLine("Status Code: " + HttpStatusCode.NotFound);
-                Results.TryUpdate(url, HttpStatusCode.NotFound, null);
-
-//                if (ex.Response != null)
-//                {
-//                    // can use ex.Response.Status, .StatusDescription
-//                    if (ex.Response.ContentLength != 0)
-//                    {
-//                        using (var stream = ex.Response.GetResponseStream())
-//                        {
-//                            using (var reader = new StreamReader(stream))
-//                            {
-//                                Console.WriteLine(reader.ReadToEnd());
-//                            }
-//                        }
-//                    }
-//                }
+                if (ex.Response != null)
+                {
+                    var resp = (HttpWebResponse)ex.Response;
+                    SetResultFromResponse(url, resp);
+                }
+                else
+                {
+                    Console.WriteLine("URL: " + url);
+                    Console.WriteLine("Other error:" + ex.Status + " - " + ex.Message);
+                }
             }
-            
+        }
+
+        private void SetResultFromResponse(string url, HttpWebResponse resp)
+        {
+            Console.WriteLine("URL: " + url);
+            Console.WriteLine("Status Code: " + (int)resp.StatusCode);
+            Console.WriteLine("Status Description: " + resp.StatusDescription + "\n");
+            Results.TryUpdate(url, resp.StatusCode, null);
         }
 
         public void CheckChildren(string parentUrl, string childSelector, string html)
@@ -95,36 +82,36 @@ namespace _200oker
             var dom = new CQ(html);
             var links = dom.Select(childSelector);
 
-            Parallel.ForEach(links, new ParallelOptions() {MaxDegreeOfParallelism = 3}, o =>
-            {
-                var url = o.Attributes["href"];
-                if (String.IsNullOrWhiteSpace(url))
-                    return;
-                if (url.StartsWith("http://crtl"))
-                {
-                    //ignore media motive ads
-                    return;
-                }
-                // check for relative url
-                if (!url.StartsWith("http://") &&
-                    !url.StartsWith("https://") &&
-                    !url.StartsWith("//"))
-                {
-                    if (url.StartsWith("/"))
-                        url = new Uri(parentUrl).GetLeftPart(UriPartial.Authority) + url;
-                    
-                    else
-                        url = parentUrl + url;
-                }
+            Parallel.ForEach(links, new ParallelOptions() { MaxDegreeOfParallelism = Config.MaxChildThreads }, o =>
+              {
+                  var url = o.Attributes["href"];
+                  if (String.IsNullOrWhiteSpace(url))
+                      return;
 
-                // check for protocol relative url
-                if (url.StartsWith("//"))
-                {
-                    url = new Uri(parentUrl).GetLeftPart(UriPartial.Scheme) + url.Substring(2);
-                }
+                  // jump out if url should be ignored
+                  if (Config.IgnoreUrlsStartingWith.Any(ignore => url.StartsWith(ignore)))
+                      return;
 
-                PerformCheck(url, null);
-            });
+                  // check for relative url
+                  if (!url.StartsWith("http://") &&
+                      !url.StartsWith("https://") &&
+                      !url.StartsWith("//"))
+                  {
+                      if (url.StartsWith("/"))
+                          url = new Uri(parentUrl).GetLeftPart(UriPartial.Authority) + url;
+
+                      else
+                          url = parentUrl + url;
+                  }
+
+                  // check for protocol relative url
+                  if (url.StartsWith("//"))
+                  {
+                      url = new Uri(parentUrl).GetLeftPart(UriPartial.Scheme) + url.Substring(2);
+                  }
+
+                  PerformCheck(url, null);
+              });
         }
     }
 }

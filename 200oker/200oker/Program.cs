@@ -22,10 +22,10 @@ namespace _200oker
 
             var checks = _provider.GetChecks(inputfile);
 
-            Console.WriteLine("Initial Checking");
+            Console.WriteLine("Checking {0} initial urls...", checks.Count);
 
             var sw = Stopwatch.StartNew();
-            Parallel.ForEach(checks, new ParallelOptions() { MaxDegreeOfParallelism = 2 },
+            Parallel.ForEach(checks, new ParallelOptions() { MaxDegreeOfParallelism = Config.MaxParentThreads },
                 c => _checker.PerformCheck(c.Url, c.ChildSelector));
             sw.Stop();
 
@@ -35,9 +35,9 @@ namespace _200oker
                 sw.Elapsed.TotalSeconds);
 
             var counts = from r in _checker.Results
-                         group r by r.Value
+                group r by r.Value
                 into status
-                         select new { status = status.Key, count = status.Count() };
+                select new {status = status.Key, count = status.Count()};
 
             foreach (var count in counts)
             {
