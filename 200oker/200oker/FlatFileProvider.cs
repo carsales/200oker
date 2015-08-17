@@ -20,7 +20,10 @@ namespace _200oker
                 while (!sr.EndOfStream)
                 {
                     var line = sr.ReadLine();
-                    if (!String.IsNullOrWhiteSpace(line))
+
+                    // ignore empty and comment lines
+                    if (!String.IsNullOrWhiteSpace(line) &&
+                        !line.StartsWith("#"))
                     {
                         var check = ParseCheckLine(line);
                         if (check != null)
