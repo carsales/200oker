@@ -85,7 +85,11 @@ namespace _200oker
             Parallel.ForEach(links, new ParallelOptions() { MaxDegreeOfParallelism = Config.MaxChildThreads }, o =>
               {
                   var url = o.Attributes["href"];
+                  // ignore empty
                   if (String.IsNullOrWhiteSpace(url))
+                      return;
+                  // ignore javascript
+                  if (url.ToLower().StartsWith("javascript:"))
                       return;
 
                   // jump out if url should be ignored
