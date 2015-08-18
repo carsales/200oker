@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Net;
@@ -20,7 +21,16 @@ namespace _200oker
             if (args.Length > 0)
                 inputfile = args[0];
 
-            var checks = _provider.GetChecks(inputfile);
+            List<UrlToCheck> checks;
+            try
+            {
+                checks = _provider.GetChecks(inputfile);
+            }
+            catch (ArgumentException ex)
+            {
+                Console.WriteLine(ex.Message);
+                return -1;
+            }
 
             Console.WriteLine("Checking {0} initial urls...", checks.Count);
 
@@ -35,9 +45,9 @@ namespace _200oker
                 sw.Elapsed.TotalSeconds);
 
             var counts = from r in _checker.Results
-                group r by r.Value
+                         group r by r.Value
                 into status
-                select new {status = status.Key, count = status.Count()};
+                         select new { status = status.Key, count = status.Count() };
 
             foreach (var count in counts)
             {

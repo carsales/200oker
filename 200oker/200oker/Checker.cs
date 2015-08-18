@@ -18,10 +18,10 @@ namespace _200oker
             Results = new ConcurrentDictionary<string, HttpStatusCode?>();
         }
 
-        public void PerformCheck(string url, string childSelector)
+        public void PerformCheck(string url, string childSelector, bool dupeCheck = false)
         {
             // check that it hasn't been done already
-            if (Results.ContainsKey(url))
+            if (dupeCheck && Results.ContainsKey(url))
                 return;
 
             // put in placeholder value
@@ -81,41 +81,45 @@ namespace _200oker
         {
             var dom = new CQ(html);
             var links = dom.Select(childSelector);
+            var childrenChecked = 0;
 
             Parallel.ForEach(links, new ParallelOptions() { MaxDegreeOfParallelism = Config.MaxChildThreads }, o =>
-              {
-                  var url = o.Attributes["href"];
-                  // ignore empty
-                  if (String.IsNullOrWhiteSpace(url))
-                      return;
-                  // ignore javascript
-                  if (url.ToLower().StartsWith("javascript:"))
-                      return;
+            {
+                childrenChecked++;
+                var url = o.Attributes["href"];
+                // ignore empty
+                if (String.IsNullOrWhiteSpace(url))
+                    return;
+                // ignore javascript
+                if (url.ToLower().StartsWith("javascript:"))
+                    return;
 
-                  // jump out if url should be ignored
-                  if (Config.IgnoreUrlsStartingWith.Any(ignore => url.StartsWith(ignore)))
-                      return;
+                // jump out if url should be ignored
+                if (Config.IgnoreUrlsStartingWith.Any(ignore => url.StartsWith(ignore)))
+                    return;
 
-                  // check for relative url
-                  if (!url.StartsWith("http://") &&
-                      !url.StartsWith("https://") &&
-                      !url.StartsWith("//"))
-                  {
-                      if (url.StartsWith("/"))
-                          url = new Uri(parentUrl).GetLeftPart(UriPartial.Authority) + url;
+                // check for relative url
+                if (!url.StartsWith("http://") &&
+                    !url.StartsWith("https://") &&
+                    !url.StartsWith("//"))
+                {
+                    if (url.StartsWith("/"))
+                        url = new Uri(parentUrl).GetLeftPart(UriPartial.Authority) + url;
 
-                      else
-                          url = parentUrl + url;
-                  }
+                    else
+                        url = parentUrl + url;
+                }
 
-                  // check for protocol relative url
-                  if (url.StartsWith("//"))
-                  {
-                      url = new Uri(parentUrl).GetLeftPart(UriPartial.Scheme) + url.Substring(2);
-                  }
+                // check for protocol relative url
+                if (url.StartsWith("//"))
+                {
+                    url = new Uri(parentUrl).GetLeftPart(UriPartial.Scheme) + url.Substring(2);
+                }
 
-                  PerformCheck(url, null);
-              });
+                PerformCheck(url, null, true);
+            });
+
+            Console.WriteLine("Checked {0} children of {1}", childrenChecked, parentUrl);
         }
     }
 }
