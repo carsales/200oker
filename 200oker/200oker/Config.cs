@@ -14,8 +14,8 @@ namespace _200oker
         static Config()
         {
             IgnoreUrlsStartingWith = new List<string>();
-            MaxParentThreads = 2;
-            MaxChildThreads = 3;
+            MaxParentThreads = 5;
+            MaxChildThreads = 5;
             TimeoutInSeconds = 60;
 
             // try to read settings from app.config
