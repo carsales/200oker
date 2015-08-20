@@ -1,0 +1,11 @@
+<?xml version="1.0"?>
+<project name="NAnt Build File" default="CODE-Build">
+  <property name="ProjectName" value="200oker" />
+  
+  <property name="SrcDir" value="${environment::get-variable('WORKSPACE')}" />
+  <property name="MsBuildExe" value="C:\WINDOWS\Microsoft.NET\Framework\v4.0.30319\MSBuild.exe"/>
+  
+  <target name="CODE-Build" description="Build all targets.">	
+	<exec program="${MsBuildExe}" commandline='"${SrcDir}\200oker\200oker\200oker.csproj" /v:m /nologo /t:build /p:Configuration=Release' />
+  </target>
+</project>
