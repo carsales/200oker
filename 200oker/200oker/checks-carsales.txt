@@ -1,3 +1,7 @@
 ﻿http://www.carsales.com.au/|.site-nav a
 http://www.carsales.com.au/cars/results?area=Stock&vertical=car&sortBy=TopDeal&q=%28Service%3D[Carsales]%29&WT.z_srchsrcx=makemodel|.result-set-container a
 http://www.carsales.com.au/bncis/details/Daewoo-BH117-2014/OAG-AD-1710062/?Cr=1|.layout-body a
+http://www.carsales.com.au/nearnew/details/Daewoo-BH117-2014/OAG-AD-975670/?Cr=0 a
+http://www.carsales.com.au/dealer/details/Daewoo-Lanos-2002/OAG-AD-477237/?Cr=0 a
+http://www.carsales.com.au/private/details/Daewoo-Kalos-2004/SSE-AD-830588 a
+http://www.carsales.com.au/new-cars/details.aspx?R=716286&Vertical=Car&__Qpb=1&Cr=0&__Ns=p_HasPhotos_Int32%7C1%7C%7Cp_IsSpecialOffer_Int32%7C1%7C%7Cp_Year_String%7C1%7C%7Cp_ReleaseMonth_Int32%7C1%7C%7Cp_Make_String%7C0%7C%7Cp_Family_String%7C0&spotid=407209&__N=2994+3296+4294958234+4294843515&Silo=1304&seot=1&__Nne=15&tsrc=sr-landing-search&csn_tn=true&trecs=24&__sid=14F457BC2895&sdmvc=1 a
