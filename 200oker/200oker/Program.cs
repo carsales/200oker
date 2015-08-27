@@ -54,6 +54,20 @@ namespace _200oker
                 Console.WriteLine("{0} urls had a status of {1}", count.count, count.status);
             }
 
+            var problems = _checker.Results.Where(x => x.Value != HttpStatusCode.OK).ToList();
+            if (problems.Any())
+            {
+                Console.WriteLine("Problem URLs:");
+                foreach (var problem in problems)
+                {
+                    Console.WriteLine("URL: {0} - Status: {1}", problem.Key, problem.Value);
+                }
+            }
+            else
+            {
+                Console.WriteLine("No problem URLs, no worries mate.");
+            }
+
             if (Debugger.IsAttached)
             {
                 Console.WriteLine("Press any key to exit");

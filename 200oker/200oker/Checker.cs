@@ -71,9 +71,7 @@ namespace _200oker
 
         private void SetResultFromResponse(string url, HttpWebResponse resp)
         {
-            Console.WriteLine("URL: " + url);
-            Console.WriteLine("Status Code: " + (int)resp.StatusCode);
-            Console.WriteLine("Status Description: " + resp.StatusDescription + "\n");
+            Console.WriteLine("URL: {0} - Status: {1} - Description: {2}", url, resp.StatusCode, resp.StatusDescription);
             Results.TryUpdate(url, resp.StatusCode, null);
         }
 
